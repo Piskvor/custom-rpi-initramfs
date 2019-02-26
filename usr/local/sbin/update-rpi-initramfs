@@ -35,7 +35,7 @@ if [[ $MSG == $CMP ]]; then
 
     # insert initramfs entry in /boot/config.txt
     VERSION=$(basename "$MSG")
-    INITRD_ENTRY="initramfs $VERSION"
+    INITRD_ENTRY="initramfs $VERSION followkernel"
     echo $(basename "$0"): insert \'"$INITRD_ENTRY"\' into /boot/config.txt
     /bin/sed -i "1i $INITRD_ENTRY" /boot/config.txt
 

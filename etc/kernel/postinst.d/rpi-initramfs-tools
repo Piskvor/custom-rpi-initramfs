@@ -61,6 +61,6 @@ INITRAMFS_TOOLS_KERNEL_HOOK=1 update-initramfs -c -t -k "${version}" ${bootopt} 
 /bin/sed -i '/^initramfs /d' /boot/config.txt
 
 # insert initramfs entry in /boot/config.txt
-INITRD_ENTRY="initramfs initrd.img-${version}"
+INITRD_ENTRY="initramfs initrd.img-${version} followkernel"
 echo >&2 $(basename "$0"): insert \'"$INITRD_ENTRY"\' into /boot/config.txt
 /bin/sed -i "1i $INITRD_ENTRY" /boot/config.txt
