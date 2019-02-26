@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # Environment variables are set by the calling script
 
-version="$1"
+version="${1:-}"
 bootopt=""
 
 command -v update-initramfs >/dev/null 2>&1 || exit 0
@@ -13,7 +13,7 @@ if [ -z "${version}" ]; then
 fi
 
 # exit if kernel does not need an initramfs
-if [ "$INITRD" = 'No' ]; then
+if [ "${INITRD:-}" = 'No' ]; then
     # delete initramfs entries in /boot/config.txt
     /bin/sed -i '/^initramfs /d' /boot/config.txt
     exit 0
@@ -30,13 +30,13 @@ fi
 
 # absolute file name of kernel image may be passed as a second argument;
 # create the initrd in the same directory
-if [ -n "$2" ]; then
+if [ -n "${2:-}" ]; then
     bootdir=$(dirname "$2")
     bootopt="-b ${bootdir}"
 fi
 
 # avoid running multiple times
-if [ -n "$DEB_MAINT_PARAMS" ]; then
+if [ -n "${DEB_MAINT_PARAMS:-}" ]; then
     eval set -- "$DEB_MAINT_PARAMS"
     if [ -z "$1" ] || [ "$1" != "configure" ]; then
         exit 0
