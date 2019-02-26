@@ -19,15 +19,26 @@ if [ "${INITRD:-}" = 'No' ]; then
     exit 0
 fi
 
-# there are only two kernel types: with and without prefix "-v7+"
-# we do nothing if the new kernel is not for the same kernel type then the current
-currentversion=$(uname -r)
-currenttype="${currentversion: -4}"
-newtype="${version: -4}"
-if [ "$newtype" != "$currenttype" ]; then
-    exit 0
-fi
 
+# there are two kernel types: with and without postfix "-v7+"
+# (or apparently "-v8+" for Pi 3 or Compute Module 3, as per https://www.raspberrypi.org/documentation/configuration/config-txt/boot.md )
+# we do nothing if the new kernel is not for the same kernel type then the current
+currentversion="$(uname -r)"
+currenttype="${currentversion: -4}"
+currentkernelpostfix="$(echo "${currenttype}" | grep -Ec -- "-v[78]+" || true)"
+newtype="${version: -4}"
+if [ "$currentkernelpostfix" -gt 0 ] ; then
+    # current kernel is of the postfixed variety, ignore new if the postfix doesn't match
+    if [ "$newtype" != "$currenttype" ]; then
+        exit 0
+    fi
+else
+    # current kernel is the old variety without postfix, ignore new if that's postfixed
+    newkernelpostfix="$(echo "${newtype}" | grep -Ec -- "-v[78]+" || true)"
+    if [ "$newkernelpostfix" -gt 0 ]; then
+        exit 0
+    fi
+fi
 # absolute file name of kernel image may be passed as a second argument;
 # create the initrd in the same directory
 if [ -n "${2:-}" ]; then
