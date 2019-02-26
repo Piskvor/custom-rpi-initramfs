@@ -1,0 +1,55 @@
+#!/bin/bash -e
+# Environment variables are set by the calling script
+
+version="$1"
+bootopt=""
+
+command -v update-initramfs >/dev/null 2>&1 || exit 0
+
+# passing the kernel version is required
+if [ -z "${version}" ]; then
+    echo >&2 "W: initramfs-tools: ${DPKG_MAINTSCRIPT_PACKAGE:-kernel package} did not pass a version number"
+    exit 2
+fi
+
+# exit if kernel does not need an initramfs
+if [ "$INITRD" = 'No' ]; then
+    # delete initramfs entries in /boot/config.txt
+    /bin/sed -i '/^initramfs /d' /boot/config.txt
+    exit 0
+fi
+
+# there are only two kernel types: with and without prefix "-v7+"
+# we do nothing if the new kernel is not for the same kernel type then the current
+currentversion=$(uname -r)
+currenttype="${currentversion: -4}"
+newtype="${version: -4}"
+if [ "$newtype" != "$currenttype" ]; then
+    exit 0
+fi
+
+# absolute file name of kernel image may be passed as a second argument;
+# create the initrd in the same directory
+if [ -n "$2" ]; then
+    bootdir=$(dirname "$2")
+    bootopt="-b ${bootdir}"
+fi
+
+# avoid running multiple times
+if [ -n "$DEB_MAINT_PARAMS" ]; then
+    eval set -- "$DEB_MAINT_PARAMS"
+    if [ -z "$1" ] || [ "$1" != "configure" ]; then
+        exit 0
+    fi
+fi
+
+# we're good - create initramfs.  update runs do_bootloader
+INITRAMFS_TOOLS_KERNEL_HOOK=1 update-initramfs -c -t -k "${version}" ${bootopt} >&2
+
+# delete initramfs entries in /boot/config.txt
+/bin/sed -i '/^initramfs /d' /boot/config.txt
+
+# insert initramfs entry in /boot/config.txt
+INITRD_ENTRY="initramfs initrd.img-${version}"
+echo >&2 $(basename "$0"): insert \'"$INITRD_ENTRY"\' into /boot/config.txt
+/bin/sed -i "1i $INITRD_ENTRY" /boot/config.txt

@@ -1,0 +1,46 @@
+#!/bin/bash
+# This script calls default update-initramfs
+# and then insert a 'initramfs' entry into /boot/config.txt if necessary
+
+# should return e.g. "update-initramfs: Generating /boot/initrd.img-4.14.79-v7+"
+# or                 "update-initramfs: Deleting /boot/initrd.img-4.14.71-v7+"
+MSG=$(/usr/sbin/update-initramfs "$@")
+RETCODE=$?
+echo $MSG
+
+if [[ $RETCODE -ne 0 ]]; then
+    echo >&2 ATTENTION! Check \'initramfs\' entry in /boot/config.txt
+    exit "$RETCODE"
+fi
+
+CMP="update-initramfs: Deleting *"
+if [[ $MSG == $CMP ]]; then
+    # delete initramfs entries in /boot/config.txt
+    /bin/sed -i '/^initramfs /d' /boot/config.txt
+    echo $(basename "$0"): deleted all \'initramfs\' entries from /boot/config.txt
+    exit 0
+fi
+
+CMP="update-initramfs: Generating *"
+if [[ $MSG == $CMP ]]; then
+    # delete initramfs entries in /boot/config.txt
+    /bin/sed -i '/^initramfs /d' /boot/config.txt
+
+    # exit if kernel does not need an initramfs
+    source /etc/default/raspberrypi-kernel
+    if [ "${INITRD,,}" != 'yes' ]; then
+        echo $(basename "$0"): no entry in /boot/config.txt \(see INITRD in /etc/default/raspberrypi-kernel\)
+        exit 0
+    fi
+
+    # insert initramfs entry in /boot/config.txt
+    VERSION=$(basename "$MSG")
+    INITRD_ENTRY="initramfs $VERSION"
+    echo $(basename "$0"): insert \'"$INITRD_ENTRY"\' into /boot/config.txt
+    /bin/sed -i "1i $INITRD_ENTRY" /boot/config.txt
+
+    exit 0
+fi
+
+echo >&2 ATTENTION! Check 'initramfs' entry in /boot/config.txt
+exit 1
